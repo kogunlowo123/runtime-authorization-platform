@@ -133,8 +133,6 @@ def test_configuration(entra: FakeEntra, clock: FakeClock) -> None:
     with pytest.raises(ValueError, match="tenant"):
         EntraIdValidator(tenants=frozenset(), audiences=frozenset({"a"}), http=httpx.AsyncClient())
     v = validator(entra, clock)
-    assert v.accepts_issuer(f"https://login.microsoftonline.com/{TENANT}/v2.0")
-    assert not v.accepts_issuer("https://evil.test/")
     assert v.issuers_for(TENANT) == {
         f"https://login.microsoftonline.com/{TENANT}/v2.0",
         f"https://sts.windows.net/{TENANT}/",
@@ -178,3 +176,19 @@ async def test_jwks_skips_unusable_keys() -> None:
         await jwks.key_for("x")
     with pytest.raises(ValueError, match="JWKS"):
         StaticJwks({"keys": "nope"})
+
+
+async def test_key_lookup_across_allowed_tenants(entra: FakeEntra, clock: FakeClock) -> None:
+    """Keys are searched only in allowed tenants' JWKS; tenant is checked after verification."""
+    v = EntraIdValidator(
+        tenants=frozenset({TENANT, OTHER_TENANT}),
+        audiences=frozenset({AUDIENCE}),
+        http=httpx.AsyncClient(),
+        resolvers={OTHER_TENANT: StaticJwks({"keys": []}), TENANT: StaticJwks(entra.jwks())},
+        clock=clock.now,
+    )
+    other = FakeEntra(tenant=OTHER_TENANT, key=entra.key)  # Entra signing keys are shared
+    principal = await v.validate(other.token("oid-x"))
+    assert principal.tenant == OTHER_TENANT
+    with pytest.raises(UnauthorizedError, match="unknown signing key"):
+        await v.validate(entra.sign(entra.claims("oid-y"), kid="nowhere"))

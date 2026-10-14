@@ -23,7 +23,7 @@
 
 | ID | Threat | Category | Control | Test |
 |---|---|---|---|---|
-| T1 | Forged token, token from another tenant or for another API | Spoofing | RS256 only, tenant allow list before key fetch, issuer/audience/time checks, JWKS from the tenant | `tests/security::test_t1_*`, `tests/unit/test_entra.py` |
+| T1 | Forged token, token from another tenant or for another API | Spoofing | RS256 only; keys only from allowed tenants' JWKS; signature verified before any claim is read; tenant, issuer, audience and time checks | `tests/security::test_t1_*`, `tests/unit/test_entra.py` |
 | T2 | Gateway decides for a subject it holds no token for | Spoofing | Subjects are only ever authenticated tokens; no subject-id parameter exists | `test_t2_subject_token_cannot_be_forged_or_omitted_for_others` |
 | T3 | Agent requests decisions for other agents | Elevation | `authz:decide` requires `Authz.Decide`; agents only `decide:self` (dry run) | `test_t3_agent_cannot_decide_for_others` |
 | T4 | Caller supplies attributes to pass ABAC (owner, classification) | Tampering | PIP attributes replace caller attributes for configured types; reserved keys dropped | `test_t4_caller_attributes_cannot_override_pip` |

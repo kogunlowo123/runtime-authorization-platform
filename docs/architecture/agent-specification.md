@@ -51,7 +51,7 @@ authority.
 
 | Mechanism | Use |
 |---|---|
-| Identity | Entra ID access tokens (v2 and optionally v1, RS256); agent identity fabric credentials (validated by introspection) |
+| Identity | Entra ID access tokens (v2 and optionally v1, RS256); agent identity fabric credentials (EdDSA, validated by introspection) |
 | RBAC | Entra app roles `Authz.Decide`, `Authz.Agent`, `Authz.PolicyAuthor`, `Authz.PolicyApprover`, `Authz.IntentApprover`, `Authz.SecurityOfficer`, `Authz.Auditor`; mapping in `policies/service-access.yaml` |
 | ABAC | `policies/runtime-authorization.yaml` over subject, resource, action risk and environment facts |
 | OAuth / OIDC | Bearer tokens (RFC 6750); fabric jwt-bearer (RFC 7523), introspection (RFC 7662) |

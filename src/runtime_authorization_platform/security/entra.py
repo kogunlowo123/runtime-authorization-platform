@@ -5,10 +5,11 @@ optionally, v1.0 (``https://sts.windows.net/<tid>/``) access tokens issued
 for this API:
 
 * ``alg`` must be RS256 and ``kid`` present (no ``none``, no HMAC confusion);
-* ``tid`` must be an allowed tenant *before* any key is fetched, so a token
-  naming an arbitrary tenant cannot make the service fetch arbitrary JWKS;
-* signature against the tenant's JWKS (``/discovery/v2.0/keys``);
-* ``iss`` must match the tenant, ``aud`` one of the configured audiences;
+* the signing key is looked up only in the JWKS (``/discovery/v2.0/keys``) of
+  allowed tenants, so a token cannot make the service fetch arbitrary key
+  sets, and no claim is read before the signature is verified;
+* ``tid`` must be an allowed tenant and ``iss`` must match it;
+  ``aud`` must be one of the configured audiences;
 * ``exp``, ``nbf`` and ``iat`` against the injected clock with bounded skew;
 * ``oid`` is required and becomes the principal id;
 * optional allow list of client application ids (``azp``/``appid``).
@@ -71,21 +72,14 @@ class EntraIdValidator:
             issuers.add(f"https://sts.windows.net/{tenant}/")
         return issuers
 
-    def accepts_issuer(self, issuer: str) -> bool:
-        return any(issuer in self.issuers_for(t) for t in self._tenants)
-
     async def validate(self, token: str) -> Principal:
         try:
             header = jwt.get_unverified_header(token)
-            unverified = jwt.decode(token, options={"verify_signature": False})
         except jwt.PyJWTError as exc:
             raise UnauthorizedError("malformed token") from exc
         if header.get("alg") != "RS256" or not isinstance(header.get("kid"), str):
             raise UnauthorizedError("token algorithm or key id not accepted")
-        tenant = str(unverified.get("tid", "")).lower()
-        if tenant not in self._tenants:
-            raise UnauthorizedError("tenant not allowed")
-        key = await self._resolvers[tenant].key_for(header["kid"])
+        key = await self._key(header["kid"])
         try:
             claims: dict[str, Any] = jwt.decode(
                 token,
@@ -101,6 +95,9 @@ class EntraIdValidator:
             )
         except jwt.PyJWTError as exc:
             raise UnauthorizedError(f"token rejected: {type(exc).__name__}") from exc
+        tenant = str(claims["tid"]).lower()
+        if tenant not in self._tenants:
+            raise UnauthorizedError("tenant not allowed")
         if claims["iss"] not in self.issuers_for(tenant):
             raise UnauthorizedError("issuer does not match tenant")
         now = self._clock()
@@ -115,6 +112,21 @@ class EntraIdValidator:
         if self._clients and client_id not in self._clients:
             raise UnauthorizedError("client application not allowed")
         return self._principal(claims, tenant, expires_at, client_id)
+
+    async def _key(self, kid: str) -> Any:
+        """Find ``kid`` in the JWKS of an allowed tenant.
+
+        Only allowed tenants' key sets are ever fetched, and nothing in the
+        token is read before its signature is verified; tenant and issuer are
+        checked on the verified claims.
+        """
+        last: UnauthorizedError | None = None
+        for tenant in sorted(self._tenants):
+            try:
+                return await self._resolvers[tenant].key_for(kid)
+            except UnauthorizedError as exc:
+                last = exc
+        raise last or UnauthorizedError(f"unknown signing key {kid!r}")
 
     @staticmethod
     def _time(claims: dict[str, Any], name: str) -> datetime:

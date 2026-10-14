@@ -1,9 +1,9 @@
 """Caller and subject authentication.
 
-A bearer token is routed by its (unverified) ``iss``: tokens from the agent
-identity fabric are validated by fabric introspection, which applies the
-fabric's revocation and credential-epoch checks; every other token must be a
-valid Entra ID access token. Nothing is trusted before validation succeeds.
+A bearer token is routed by its header algorithm: Entra ID access tokens are
+RS256 and are validated locally; agent identity fabric credentials are EdDSA
+and are validated by fabric introspection, which applies the fabric's
+revocation and credential-epoch checks. No claim is read before validation.
 """
 
 from __future__ import annotations
@@ -20,6 +20,8 @@ from runtime_authorization_platform.domain.errors import UnauthorizedError
 from runtime_authorization_platform.domain.models import Principal, PrincipalKind
 from runtime_authorization_platform.integrations.fabric import FabricClient
 from runtime_authorization_platform.security.entra import EntraIdValidator
+
+ENTRA_ALGORITHM = "RS256"
 
 
 def bearer_token(authorization: str | None) -> str:
@@ -61,15 +63,17 @@ class Authenticator:
 
     async def authenticate(self, token: str) -> Principal:
         try:
-            issuer = str(jwt.decode(token, options={"verify_signature": False}).get("iss", ""))
+            algorithm = jwt.get_unverified_header(token).get("alg")
         except jwt.PyJWTError as exc:
             raise UnauthorizedError("malformed token") from exc
-        if self._fabric_issuer is not None and issuer.rstrip("/") == self._fabric_issuer:
-            return await self._fabric_principal(token)
-        return await self._entra.validate(token)
+        # Entra ID access tokens are RS256; fabric credentials are EdDSA. Routing reads only
+        # the header; each path then validates the whole token.
+        if algorithm == ENTRA_ALGORITHM or self._fabric is None:
+            return await self._entra.validate(token)
+        return await self._fabric_principal(token)
 
     async def _fabric_principal(self, token: str) -> Principal:
-        if self._fabric is None:  # pragma: no cover - configuration validator requires both
+        if self._fabric is None:  # pragma: no cover - authenticate routes here only with a fabric
             raise UnauthorizedError("identity fabric is not configured")
         key = hashlib.sha256(token.encode()).hexdigest()
         cached = self._cache.get(key)

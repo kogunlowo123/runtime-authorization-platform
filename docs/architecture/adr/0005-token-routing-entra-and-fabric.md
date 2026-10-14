@@ -12,15 +12,18 @@ Both must be accepted without either becoming an "accept anything" path.
 
 ## Decision
 
-- A bearer token is routed by its unverified `iss`: the configured fabric
-  issuer goes to fabric introspection (which applies the fabric's revocation
-  and credential-epoch checks; results cached for at most 10 s); every other
-  token must be a valid Entra ID token.
-- Entra validation: RS256 only; `tid` checked against the allow list before
-  any key fetch; signature against the tenant JWKS (cached, rate-limited
-  refresh on unknown `kid`); issuer must match the tenant (v2.0, optionally
-  v1.0); audience; `exp`, `nbf` and `iat` against the injected clock with
-  60 s skew; `oid` required; optional client-application allow list.
+- A bearer token is routed by its header algorithm only: RS256 tokens are
+  Entra ID tokens; EdDSA tokens go to fabric introspection when a fabric is
+  configured (which applies the fabric's revocation and credential-epoch
+  checks; results cached for at most 10 s). No claim is read before the
+  token is validated, so routing cannot be steered by forged claims.
+- Entra validation: RS256 only; the signing key is looked up only in the
+  JWKS of allowed tenants (cached, rate-limited refresh on unknown `kid`), so
+  a token cannot make the service fetch arbitrary key sets; after the
+  signature verifies, `tid` must be allowed and the issuer must match it
+  (v2.0, optionally v1.0); audience; `exp`, `nbf` and `iat` against the
+  injected clock with 60 s skew; `oid` required; optional client-application
+  allow list.
 - Operation access: Entra principals are checked by the local agentic-core
   engine over `policies/service-access.yaml`; fabric principals by the
   fabric's `/v1/authorize`, which knows their scopes and chains.

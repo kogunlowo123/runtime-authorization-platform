@@ -18,7 +18,7 @@ Intent ─▶ Policy ─▶ Resource ─▶ Authorization ─▶ Decision
 |---|---|
 | Action-level controls | Reviewed action catalog with risk tiers and intent requirements; unregistered actions denied before policy; emergency action blocks (kill switch) |
 | Intent declaration | Agents declare action, resource, justification and purpose; justification screened for prompt injection and secrets (agentic-core), PII redacted; four-eyes approval; metered, atomic, single-use by default |
-| Entra ID token validation | RS256, tenant allow list before key fetch, tenant JWKS with rate-limited refresh, v2/v1 issuers, audience, injected-clock time checks, app roles |
+| Entra ID token validation | RS256 only, keys only from allowed tenants' JWKS (rate-limited refresh), signature verified before any claim is read, tenant/issuer (v2, v1)/audience checks, injected-clock time checks, app roles |
 | Agent identity fabric | Typed client (`/oauth2/token` jwt-bearer, `/oauth2/introspect`, `/v1/authorize`); fabric credentials validated by introspection, fabric principals authorized by the fabric |
 | ABAC with PIPs | Resource and principal attributes from HTTP or static policy information points; TTL cache, negative caching, single flight, bounded stale-if-error, LRU; caller attributes ignored where a PIP is configured |
 | Policy authoring with tests | Policy versions submitted with unit tests; every rule must decide a case; author cannot activate; rollback by re-activation; CLI `authz-policy-test` runs in CI |

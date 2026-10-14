@@ -10,6 +10,7 @@ import httpx
 import jwt
 import pytest
 from agentic_core.policy import PolicyEngine, PolicySet
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from runtime_authorization_platform.domain.errors import ForbiddenError, UnauthorizedError
 from runtime_authorization_platform.domain.models import PrincipalKind
@@ -25,10 +26,13 @@ FABRIC_ISSUER = "https://identity.corp.test"
 AGENT_URI = "spiffe://agents.corp.test/agent/finance/assistant"
 
 
+FABRIC_KEY = Ed25519PrivateKey.generate()
+
+
 def fabric_token(**claims: Any) -> str:
-    """Shape of a fabric credential; the fabric itself verifies it on introspection."""
+    """Shape of a fabric credential (EdDSA); the fabric itself verifies it on introspection."""
     body = {"iss": FABRIC_ISSUER, "sub": AGENT_URI, "exp": int(time.time()) + 600, **claims}
-    return jwt.encode(body, "fabric-signing-key-not-checked-here-32b", algorithm="HS256")
+    return jwt.encode(body, FABRIC_KEY, algorithm="EdDSA", headers={"kid": "2026-10"})
 
 
 class FakeFabric:
