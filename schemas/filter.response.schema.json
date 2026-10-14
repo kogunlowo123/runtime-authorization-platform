@@ -1,0 +1,125 @@
+{
+  "$defs": {
+    "PolicyRef": {
+      "properties": {
+        "digest": {
+          "title": "Digest",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "digest"
+      ],
+      "title": "PolicyRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/kogunlowo123/runtime-authorization-platform/schemas/filter.response.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "action": {
+      "title": "Action",
+      "type": "string"
+    },
+    "allowed_ids": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Allowed Ids"
+    },
+    "always_allowed": {
+      "title": "Always Allowed",
+      "type": "boolean"
+    },
+    "denied_ids": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Denied Ids"
+    },
+    "engine": {
+      "title": "Engine",
+      "type": "string"
+    },
+    "never_allowed": {
+      "title": "Never Allowed",
+      "type": "boolean"
+    },
+    "policy": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PolicyRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "residual": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Condition over resource.* attributes that holds exactly for allowed resources; null when an external engine decides and only candidates can be checked",
+      "title": "Residual"
+    },
+    "resource_type": {
+      "title": "Resource Type",
+      "type": "string"
+    },
+    "subject": {
+      "title": "Subject",
+      "type": "string"
+    }
+  },
+  "required": [
+    "subject",
+    "action",
+    "resource_type",
+    "residual",
+    "always_allowed",
+    "never_allowed",
+    "reason",
+    "allowed_ids",
+    "denied_ids",
+    "policy",
+    "engine"
+  ],
+  "title": "FilterResult",
+  "type": "object"
+}

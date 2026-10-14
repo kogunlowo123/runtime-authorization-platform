@@ -1,0 +1,110 @@
+{
+  "$defs": {
+    "Decision": {
+      "description": "Outcome of a policy or security evaluation.",
+      "enum": [
+        "allow",
+        "deny",
+        "require_approval"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "PolicyTestCase": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Action",
+          "type": "string"
+        },
+        "environment": {
+          "additionalProperties": true,
+          "title": "Environment",
+          "type": "object"
+        },
+        "expect": {
+          "$ref": "#/$defs/Decision"
+        },
+        "expect_rules": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expect Rules"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 3,
+          "title": "Name",
+          "type": "string"
+        },
+        "resource": {
+          "additionalProperties": true,
+          "title": "Resource",
+          "type": "object"
+        },
+        "risk": {
+          "$ref": "#/$defs/RiskLevel",
+          "default": 1
+        },
+        "subject": {
+          "additionalProperties": true,
+          "title": "Subject",
+          "type": "object"
+        }
+      },
+      "required": [
+        "name",
+        "action",
+        "expect"
+      ],
+      "title": "PolicyTestCase",
+      "type": "object"
+    },
+    "RiskLevel": {
+      "description": "Action risk tier. Ordered so policies can compare with ``>=``.",
+      "enum": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "title": "RiskLevel",
+      "type": "integer"
+    }
+  },
+  "$id": "https://github.com/kogunlowo123/runtime-authorization-platform/schemas/policy-test-suite.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/PolicyTestCase"
+      },
+      "minItems": 1,
+      "title": "Cases",
+      "type": "array"
+    },
+    "policy": {
+      "description": "Name of the policy set the suite targets",
+      "title": "Policy",
+      "type": "string"
+    }
+  },
+  "required": [
+    "policy",
+    "cases"
+  ],
+  "title": "PolicyTestSuite",
+  "type": "object"
+}

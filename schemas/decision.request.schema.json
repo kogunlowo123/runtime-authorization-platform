@@ -1,0 +1,114 @@
+{
+  "$defs": {
+    "DataClassification": {
+      "description": "Sensitivity label. Ordered from least to most restricted.",
+      "enum": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "title": "DataClassification",
+      "type": "integer"
+    },
+    "ResourceInput": {
+      "additionalProperties": false,
+      "properties": {
+        "attributes": {
+          "additionalProperties": true,
+          "description": "Used only when no attribute source is configured for the type",
+          "title": "Attributes",
+          "type": "object"
+        },
+        "classification": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DataClassification"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Used only when no attribute source is configured for the type"
+        },
+        "id": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "maxLength": 200,
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "title": "ResourceInput",
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/kogunlowo123/runtime-authorization-platform/schemas/decision.request.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "maxLength": 200,
+      "title": "Action",
+      "type": "string"
+    },
+    "dry_run": {
+      "default": false,
+      "description": "Evaluate without consuming intent uses",
+      "title": "Dry Run",
+      "type": "boolean"
+    },
+    "environment": {
+      "additionalProperties": true,
+      "title": "Environment",
+      "type": "object"
+    },
+    "intent_id": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Intent Id"
+    },
+    "resource": {
+      "$ref": "#/$defs/ResourceInput"
+    },
+    "subject_token": {
+      "anyOf": [
+        {
+          "maxLength": 16384,
+          "minLength": 20,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The acting agent's or user's bearer token as presented to the enforcement point. When omitted, the caller is the subject and the request is evaluated as a dry run.",
+      "title": "Subject Token"
+    }
+  },
+  "required": [
+    "action",
+    "resource"
+  ],
+  "title": "DecisionRequest",
+  "type": "object"
+}

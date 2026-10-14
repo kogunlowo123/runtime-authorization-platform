@@ -1,0 +1,85 @@
+{
+  "$defs": {
+    "ActionControl": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "maxLength": 500,
+          "minLength": 3,
+          "title": "Description",
+          "type": "string"
+        },
+        "intent": {
+          "$ref": "#/$defs/IntentRequirement",
+          "default": "optional"
+        },
+        "max_intent_uses": {
+          "default": 1,
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Intent Uses",
+          "type": "integer"
+        },
+        "pattern": {
+          "description": "Action glob, e.g. payments:execute or tickets:*",
+          "title": "Pattern",
+          "type": "string"
+        },
+        "risk": {
+          "$ref": "#/$defs/RiskLevel"
+        }
+      },
+      "required": [
+        "pattern",
+        "risk",
+        "description"
+      ],
+      "title": "ActionControl",
+      "type": "object"
+    },
+    "IntentRequirement": {
+      "enum": [
+        "none",
+        "optional",
+        "required"
+      ],
+      "title": "IntentRequirement",
+      "type": "string"
+    },
+    "RiskLevel": {
+      "description": "Action risk tier. Ordered so policies can compare with ``>=``.",
+      "enum": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "title": "RiskLevel",
+      "type": "integer"
+    }
+  },
+  "$id": "https://github.com/kogunlowo123/runtime-authorization-platform/schemas/action-catalog.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Registered actions. Unregistered actions are denied before policy evaluation.",
+  "properties": {
+    "actions": {
+      "items": {
+        "$ref": "#/$defs/ActionControl"
+      },
+      "minItems": 1,
+      "title": "Actions",
+      "type": "array"
+    },
+    "version": {
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "version",
+    "actions"
+  ],
+  "title": "ActionCatalog",
+  "type": "object"
+}

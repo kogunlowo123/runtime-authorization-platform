@@ -1,0 +1,66 @@
+{
+  "title": "Runtime Authorization Platform",
+  "uid": "runtime-authorization-platform",
+  "schemaVersion": 39,
+  "time": {"from": "now-6h", "to": "now"},
+  "templating": {
+    "list": [
+      {"name": "datasource", "type": "datasource", "query": "prometheus"}
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Request success (5m)",
+      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "decimals": 3}},
+      "targets": [{"expr": "1 - authz:request_errors:ratio_5m"}]
+    },
+    {
+      "id": 2, "type": "timeseries", "title": "Decisions by outcome and stage",
+      "gridPos": {"x": 6, "y": 0, "w": 9, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [{"expr": "sum by (decision, stage) (rate(authz_decisions_total[5m]))", "legendFormat": "{{decision}} / {{stage}}"}]
+    },
+    {
+      "id": 3, "type": "timeseries", "title": "Decision latency p50 / p99",
+      "gridPos": {"x": 15, "y": 0, "w": 9, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"unit": "s"}},
+      "targets": [
+        {"expr": "histogram_quantile(0.5, sum by (le) (rate(authz_decision_duration_seconds_bucket[5m])))", "legendFormat": "p50"},
+        {"expr": "histogram_quantile(0.99, sum by (le) (rate(authz_decision_duration_seconds_bucket[5m])))", "legendFormat": "p99"}
+      ]
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Intent lifecycle",
+      "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [{"expr": "sum by (event) (rate(authz_intent_events_total[5m]))", "legendFormat": "{{event}}"}]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "Attribute source (PIP) lookups",
+      "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [{"expr": "sum by (entity_type, outcome) (rate(authz_pip_lookups_total[5m]))", "legendFormat": "{{entity_type}} {{outcome}}"}]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "OPA shadow comparisons",
+      "gridPos": {"x": 0, "y": 16, "w": 8, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [{"expr": "sum by (outcome) (rate(authz_opa_shadow_comparisons_total[5m]))", "legendFormat": "{{outcome}}"}]
+    },
+    {
+      "id": 7, "type": "table", "title": "Active policy",
+      "gridPos": {"x": 8, "y": 16, "w": 8, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [{"expr": "max by (name, version, digest) (authz_active_policy_info)", "format": "table", "instant": true}]
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "MCP and A2A calls",
+      "gridPos": {"x": 16, "y": 16, "w": 8, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [{"expr": "sum by (protocol, operation, outcome) (rate(authz_protocol_calls_total[5m]))", "legendFormat": "{{protocol}} {{operation}} {{outcome}}"}]
+    }
+  ]
+}

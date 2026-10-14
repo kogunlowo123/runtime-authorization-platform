@@ -1,0 +1,75 @@
+{
+  "$id": "https://github.com/kogunlowo123/runtime-authorization-platform/schemas/intent.request.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "description": "Concrete action, e.g. payments:execute",
+      "maxLength": 200,
+      "title": "Action",
+      "type": "string"
+    },
+    "justification": {
+      "maxLength": 2000,
+      "minLength": 20,
+      "title": "Justification",
+      "type": "string"
+    },
+    "max_uses": {
+      "anyOf": [
+        {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Uses"
+    },
+    "purpose": {
+      "description": "Purpose of use",
+      "maxLength": 200,
+      "minLength": 3,
+      "title": "Purpose",
+      "type": "string"
+    },
+    "resource_id": {
+      "description": "Target resource id, or * for any of the type",
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Resource Id",
+      "type": "string"
+    },
+    "resource_type": {
+      "maxLength": 200,
+      "title": "Resource Type",
+      "type": "string"
+    },
+    "ttl_seconds": {
+      "anyOf": [
+        {
+          "maximum": 86400,
+          "minimum": 30,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ttl Seconds"
+    }
+  },
+  "required": [
+    "action",
+    "resource_type",
+    "resource_id",
+    "justification",
+    "purpose"
+  ],
+  "title": "DeclareIntent",
+  "type": "object"
+}

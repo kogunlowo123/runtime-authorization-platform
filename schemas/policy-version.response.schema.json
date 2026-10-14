@@ -1,0 +1,102 @@
+{
+  "$defs": {
+    "PolicyStatus": {
+      "enum": [
+        "draft",
+        "active",
+        "superseded"
+      ],
+      "title": "PolicyStatus",
+      "type": "string"
+    }
+  },
+  "$id": "https://github.com/kogunlowo123/runtime-authorization-platform/schemas/policy-version.response.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "activated_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Activated At"
+    },
+    "activated_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Activated By"
+    },
+    "author": {
+      "title": "Author",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "digest": {
+      "title": "Digest",
+      "type": "string"
+    },
+    "document": {
+      "additionalProperties": true,
+      "title": "Document",
+      "type": "object"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/PolicyStatus"
+    },
+    "test_summary": {
+      "additionalProperties": true,
+      "title": "Test Summary",
+      "type": "object"
+    },
+    "tests": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Tests",
+      "type": "array"
+    },
+    "version": {
+      "title": "Version",
+      "type": "string"
+    },
+    "version_id": {
+      "title": "Version Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "version_id",
+    "name",
+    "version",
+    "digest",
+    "status",
+    "author",
+    "created_at",
+    "activated_by",
+    "activated_at",
+    "test_summary",
+    "document",
+    "tests"
+  ],
+  "title": "PolicyVersionView",
+  "type": "object"
+}

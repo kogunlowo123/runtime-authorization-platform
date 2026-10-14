@@ -1,0 +1,94 @@
+# Unit tests for policies/service-access.yaml.
+policy: service-access
+cases:
+  - name: gateway may request decisions
+    subject: {id: gw, roles: [Authz.Decide], delegated: false}
+    action: authz:decide
+    resource: {type: runtime-authorization, id: decide}
+    expect: allow
+    expect_rules: [allow-enforcement-points]
+
+  - name: gateway may not submit policy
+    subject: {id: gw, roles: [Authz.Decide], delegated: false}
+    action: authz:policy:submit
+    resource: {type: runtime-authorization, id: policy:submit}
+    expect: deny
+
+  - name: agent declares intent
+    subject: {id: agent, roles: [Authz.Agent], delegated: false}
+    action: authz:intent:declare
+    resource: {type: runtime-authorization, id: intent:declare}
+    expect: allow
+    expect_rules: [allow-agents]
+
+  - name: agent may not decide for others
+    subject: {id: agent, roles: [Authz.Agent], delegated: false}
+    action: authz:decide
+    resource: {type: runtime-authorization, id: decide}
+    expect: deny
+
+  - name: agent may not approve its own intents
+    subject: {id: agent, roles: [Authz.Agent], delegated: false}
+    action: authz:intent:approve
+    resource: {type: runtime-authorization, id: intent:approve}
+    expect: deny
+
+  - name: author submits policy
+    subject: {id: alice, roles: [Authz.PolicyAuthor], delegated: false}
+    action: authz:policy:submit
+    resource: {type: runtime-authorization, id: policy:submit}
+    expect: allow
+    expect_rules: [allow-policy-authors]
+
+  - name: author cannot activate
+    subject: {id: alice, roles: [Authz.PolicyAuthor], delegated: false}
+    action: authz:policy:activate
+    resource: {type: runtime-authorization, id: policy:activate}
+    expect: deny
+
+  - name: approver activates
+    subject: {id: bob, roles: [Authz.PolicyApprover], delegated: false}
+    action: authz:policy:activate
+    resource: {type: runtime-authorization, id: policy:activate}
+    expect: allow
+    expect_rules: [allow-policy-approvers]
+
+  - name: delegated approver cannot activate
+    subject: {id: bob, roles: [Authz.PolicyApprover], delegated: true}
+    action: authz:policy:activate
+    resource: {type: runtime-authorization, id: policy:activate}
+    expect: deny
+    expect_rules: [deny-delegated-administration]
+
+  - name: intent approver approves
+    subject: {id: carol, roles: [Authz.IntentApprover], delegated: false}
+    action: authz:intent:approve
+    resource: {type: runtime-authorization, id: intent:approve}
+    expect: allow
+    expect_rules: [allow-intent-approvers]
+
+  - name: security officer blocks an action
+    subject: {id: dave, roles: [Authz.SecurityOfficer], delegated: false}
+    action: authz:action:block
+    resource: {type: runtime-authorization, id: action:block}
+    expect: allow
+    expect_rules: [allow-security-officers]
+
+  - name: auditor reads decision logs
+    subject: {id: erin, roles: [Authz.Auditor], delegated: false}
+    action: authz:decision-log:read
+    resource: {type: runtime-authorization, id: decision-log:read}
+    expect: allow
+    expect_rules: [allow-auditors]
+
+  - name: auditor cannot block actions
+    subject: {id: erin, roles: [Authz.Auditor], delegated: false}
+    action: authz:action:block
+    resource: {type: runtime-authorization, id: action:block}
+    expect: deny
+
+  - name: no role means no access
+    subject: {id: mallory, roles: [], delegated: false}
+    action: authz:decision-log:read
+    resource: {type: runtime-authorization, id: decision-log:read}
+    expect: deny

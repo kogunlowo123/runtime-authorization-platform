@@ -1,0 +1,100 @@
+# PrometheusRule-compatible alert rules. Load with the Prometheus Operator
+# (wrap in a PrometheusRule) or a rule_files entry.
+# SLOs (docs/architecture/agent-specification.md#objectives):
+#   availability  99.95% of decision and filter requests succeed (non-5xx)
+#   latency       p99 /v1/decisions < 50 ms, p99 /v1/filter < 150 ms
+groups:
+  - name: runtime-authorization.slo
+    rules:
+      - record: authz:request_errors:ratio_5m
+        expr: |
+          sum(rate(authz_http_request_duration_seconds_count{status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(authz_http_request_duration_seconds_count[5m])), 1e-9)
+
+      - record: authz:request_errors:ratio_1h
+        expr: |
+          sum(rate(authz_http_request_duration_seconds_count{status=~"5.."}[1h]))
+          /
+          clamp_min(sum(rate(authz_http_request_duration_seconds_count[1h])), 1e-9)
+
+      - alert: AuthzErrorBudgetBurnFast
+        expr: authz:request_errors:ratio_5m > (14.4 * 0.0005) and authz:request_errors:ratio_1h > (14.4 * 0.0005)
+        for: 2m
+        labels: {severity: page}
+        annotations:
+          summary: Runtime authorization burning error budget 14x faster than sustainable
+          runbook: docs/runbooks/incident-response.md#elevated-5xx
+
+      - alert: AuthzDecisionLatencyHigh
+        expr: |
+          histogram_quantile(0.99, sum by (le) (
+            rate(authz_http_request_duration_seconds_bucket{route="/v1/decisions"}[5m])
+          )) > 0.05
+        for: 10m
+        labels: {severity: ticket}
+        annotations:
+          summary: p99 /v1/decisions above 50 ms
+          runbook: docs/runbooks/monitoring.md#latency
+
+      - alert: AuthzFilterLatencyHigh
+        expr: |
+          histogram_quantile(0.99, sum by (le) (
+            rate(authz_http_request_duration_seconds_bucket{route="/v1/filter"}[5m])
+          )) > 0.15
+        for: 10m
+        labels: {severity: ticket}
+        annotations:
+          summary: p99 /v1/filter above 150 ms
+          runbook: docs/runbooks/monitoring.md#latency
+
+  - name: runtime-authorization.security
+    rules:
+      - alert: AuthzDenySpike
+        expr: |
+          sum(rate(authz_decisions_total{decision="deny"}[10m]))
+          /
+          clamp_min(sum(rate(authz_decisions_total[10m])), 1e-9) > 0.25
+        for: 15m
+        labels: {severity: ticket}
+        annotations:
+          summary: More than 25% of decisions are denials (misbehaving agent or broken policy)
+          runbook: docs/runbooks/incident-response.md#deny-spike
+
+      - alert: AuthzIntentRejections
+        expr: sum(rate(authz_intent_events_total{event="rejected"}[15m])) > 0.1
+        for: 15m
+        labels: {severity: page}
+        annotations:
+          summary: Agents are submitting intents that fail injection or secret screening
+          runbook: docs/runbooks/incident-response.md#intent-rejections
+
+      - alert: AuthzAttributeSourceErrors
+        expr: sum by (entity_type) (rate(authz_pip_lookups_total{outcome=~"error|stale"}[5m])) > 0
+        for: 5m
+        labels: {severity: page}
+        annotations:
+          summary: A policy information point is failing; decisions for that type fail closed
+          runbook: docs/runbooks/incident-response.md#pip-outage
+
+      - alert: AuthzOpaShadowMismatch
+        expr: sum(increase(authz_opa_shadow_comparisons_total{outcome="mismatch"}[1h])) > 0
+        labels: {severity: ticket}
+        annotations:
+          summary: OPA and the local engine disagree in shadow mode; do not cut over
+          runbook: docs/runbooks/opa-migration.md
+
+      - alert: AuthzPolicyActivated
+        expr: increase(authz_policy_activations_total[5m]) > 0
+        labels: {severity: info}
+        annotations:
+          summary: A policy version was activated; confirm it matches an approved change
+          runbook: docs/runbooks/policy-change.md
+
+      - alert: AuthzNotReady
+        expr: sum(up{job="runtime-authorization-platform"}) < 2
+        for: 5m
+        labels: {severity: page}
+        annotations:
+          summary: Fewer than two replicas are being scraped
+          runbook: docs/runbooks/incident-response.md#replicas-down

@@ -1,0 +1,81 @@
+# Runtime authorization policy evaluated by POST /v1/decisions and POST /v1/filter.
+# Combining: deny overrides, then require_approval, then allow; default deny.
+#
+# Facts (docs/architecture/agent-specification.md#policy-facts):
+#   subject      id, kind, roles, tenant, issuer, app_id, scopes, delegated,
+#                delegation_depth, delegation_chain, action_in_scope, clearance,
+#                risk, plus attributes from the principal PIP (department, ...)
+#   resource     type, id, classification, plus PIP attributes
+#                (owner, department, quarantined, ...)
+#   risk         action risk from policies/actions.yaml (1 LOW .. 4 CRITICAL)
+#   environment  caller context (purpose_of_use, ...), plus platform-set
+#                intent {declared, approved, purpose, uses, max_uses} and
+#                time {hour, weekday, date}
+# classification: 0 PUBLIC, 1 INTERNAL, 2 CONFIDENTIAL, 3 RESTRICTED
+#
+# Enforced in code before this policy runs: registered actions only, action
+# blocks, required intents, intent/request consistency, and the classification
+# ceiling (resource.classification <= subject.clearance).
+name: runtime-authorization
+version: "2026.10.0"
+rules:
+  - id: deny-quarantined-resources
+    description: Resources under legal hold or incident quarantine are untouchable.
+    effect: deny
+    actions: ["*"]
+    conditions:
+      - {attribute: resource.quarantined, operator: eq, value: true}
+
+  - id: deny-restricted-without-purpose
+    description: Restricted data requires a stated purpose of use.
+    effect: deny
+    actions: ["*"]
+    conditions:
+      - {attribute: resource.classification, operator: gte, value: 3}
+      - {attribute: environment.purpose_of_use, operator: exists, value: false}
+
+  - id: deny-critical-under-delegation
+    description: Critical actions are never performed on delegated authority.
+    effect: deny
+    actions: ["*"]
+    conditions:
+      - {attribute: risk, operator: gte, value: 4}
+      - {attribute: subject.delegated, operator: eq, value: true}
+
+  - id: approve-high-risk-actions
+    description: High and critical risk actions need a human-approved intent.
+    effect: require_approval
+    actions: ["*"]
+    conditions:
+      - {attribute: risk, operator: gte, value: 3}
+      - {attribute: environment.intent.approved, operator: eq, value: false}
+
+  - id: approve-restricted-changes
+    description: Changes to restricted data need a human-approved intent.
+    effect: require_approval
+    actions: ["*:write", "*:update", "*:delete", "*:export"]
+    conditions:
+      - {attribute: resource.classification, operator: gte, value: 3}
+      - {attribute: environment.intent.approved, operator: eq, value: false}
+
+  - id: allow-scoped-actions
+    description: A principal may perform actions its credential carries as a scope or app role.
+    effect: allow
+    actions: ["*"]
+    conditions:
+      - {attribute: subject.action_in_scope, operator: eq, value: true}
+
+  - id: allow-owner-read
+    description: Owners may read their own resources.
+    effect: allow
+    actions: ["*:read"]
+    conditions:
+      - {attribute: subject.id, operator: eq_attr, value: resource.owner}
+
+  - id: allow-department-read
+    description: Members of the owning department may read data up to confidential.
+    effect: allow
+    actions: ["*:read"]
+    conditions:
+      - {attribute: subject.department, operator: eq_attr, value: resource.department}
+      - {attribute: resource.classification, operator: lte, value: 2}

@@ -1,0 +1,118 @@
+{
+  "$defs": {
+    "CaseResult": {
+      "properties": {
+        "actual": {
+          "$ref": "#/$defs/Decision"
+        },
+        "expected": {
+          "$ref": "#/$defs/Decision"
+        },
+        "matched_rules": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Matched Rules",
+          "type": "array"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "passed",
+        "expected",
+        "actual",
+        "matched_rules",
+        "message"
+      ],
+      "title": "CaseResult",
+      "type": "object"
+    },
+    "Decision": {
+      "description": "Outcome of a policy or security evaluation.",
+      "enum": [
+        "allow",
+        "deny",
+        "require_approval"
+      ],
+      "title": "Decision",
+      "type": "string"
+    }
+  },
+  "$id": "https://github.com/kogunlowo123/runtime-authorization-platform/schemas/policy-test-report.response.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "coverage_required": {
+      "title": "Coverage Required",
+      "type": "boolean"
+    },
+    "failed": {
+      "title": "Failed",
+      "type": "integer"
+    },
+    "ok": {
+      "readOnly": true,
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "passed": {
+      "title": "Passed",
+      "type": "integer"
+    },
+    "policy_digest": {
+      "title": "Policy Digest",
+      "type": "string"
+    },
+    "policy_name": {
+      "title": "Policy Name",
+      "type": "string"
+    },
+    "policy_version": {
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "results": {
+      "items": {
+        "$ref": "#/$defs/CaseResult"
+      },
+      "title": "Results",
+      "type": "array"
+    },
+    "total": {
+      "title": "Total",
+      "type": "integer"
+    },
+    "uncovered_rules": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Uncovered Rules",
+      "type": "array"
+    }
+  },
+  "required": [
+    "policy_name",
+    "policy_version",
+    "policy_digest",
+    "total",
+    "passed",
+    "failed",
+    "uncovered_rules",
+    "coverage_required",
+    "results",
+    "ok"
+  ],
+  "title": "PolicyTestReport",
+  "type": "object"
+}

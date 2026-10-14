@@ -1,0 +1,159 @@
+{
+  "$defs": {
+    "DataClassification": {
+      "description": "Sensitivity label. Ordered from least to most restricted.",
+      "enum": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "title": "DataClassification",
+      "type": "integer"
+    },
+    "Decision": {
+      "description": "Outcome of a policy or security evaluation.",
+      "enum": [
+        "allow",
+        "deny",
+        "require_approval"
+      ],
+      "title": "Decision",
+      "type": "string"
+    }
+  },
+  "$id": "https://github.com/kogunlowo123/runtime-authorization-platform/schemas/decision-log.record.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "One decision-log entry. Every decision is persisted and audited.",
+  "properties": {
+    "action": {
+      "title": "Action",
+      "type": "string"
+    },
+    "attribute_sources": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Attribute Sources",
+      "type": "object"
+    },
+    "caller_id": {
+      "title": "Caller Id",
+      "type": "string"
+    },
+    "classification": {
+      "$ref": "#/$defs/DataClassification"
+    },
+    "correlation_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Correlation Id"
+    },
+    "decision": {
+      "$ref": "#/$defs/Decision"
+    },
+    "decision_id": {
+      "title": "Decision Id",
+      "type": "string"
+    },
+    "dry_run": {
+      "title": "Dry Run",
+      "type": "boolean"
+    },
+    "engine": {
+      "title": "Engine",
+      "type": "string"
+    },
+    "intent_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Intent Id"
+    },
+    "latency_ms": {
+      "title": "Latency Ms",
+      "type": "number"
+    },
+    "matched_rules": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Matched Rules",
+      "type": "array"
+    },
+    "policy_digest": {
+      "title": "Policy Digest",
+      "type": "string"
+    },
+    "policy_name": {
+      "title": "Policy Name",
+      "type": "string"
+    },
+    "policy_version": {
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "resource_id": {
+      "title": "Resource Id",
+      "type": "string"
+    },
+    "resource_type": {
+      "title": "Resource Type",
+      "type": "string"
+    },
+    "stage": {
+      "description": "control (pre-policy action controls) or policy",
+      "title": "Stage",
+      "type": "string"
+    },
+    "subject_id": {
+      "title": "Subject Id",
+      "type": "string"
+    },
+    "timestamp": {
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    }
+  },
+  "required": [
+    "decision_id",
+    "timestamp",
+    "caller_id",
+    "subject_id",
+    "action",
+    "resource_type",
+    "resource_id",
+    "decision",
+    "reason",
+    "stage",
+    "matched_rules",
+    "policy_name",
+    "policy_version",
+    "policy_digest",
+    "engine",
+    "intent_id",
+    "dry_run",
+    "latency_ms",
+    "correlation_id",
+    "attribute_sources",
+    "classification"
+  ],
+  "title": "DecisionRecord",
+  "type": "object"
+}

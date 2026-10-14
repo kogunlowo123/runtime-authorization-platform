@@ -1,0 +1,68 @@
+# Who may call which platform operation (action authz:<operation> on resource
+# type runtime-authorization). Evaluated by the agentic-core PolicyEngine for
+# Entra ID principals; agent identity fabric principals are authorized by the
+# fabric. Roles are Entra app roles (src/runtime_authorization_platform/security/roles.py).
+name: service-access
+version: "2026.10.0"
+rules:
+  - id: deny-delegated-administration
+    description: Policy, approval and action-block operations are never performed on delegated authority.
+    effect: deny
+    actions: ["authz:policy:*", "authz:intent:approve", "authz:action:block"]
+    conditions:
+      - {attribute: subject.delegated, operator: eq, value: true}
+
+  - id: allow-enforcement-points
+    description: Gateways and other enforcement points request decisions for their callers.
+    effect: allow
+    actions: ["authz:decide", "authz:filter"]
+    conditions:
+      - {attribute: subject.roles, operator: contains, value: Authz.Decide}
+
+  - id: allow-agents
+    description: Agents declare intents and check or filter their own access.
+    effect: allow
+    actions: ["authz:decide:self", "authz:filter", "authz:intent:declare"]
+    conditions:
+      - {attribute: subject.roles, operator: contains, value: Authz.Agent}
+
+  - id: allow-policy-authors
+    description: Authors test and submit policy versions.
+    effect: allow
+    actions: ["authz:policy:submit", "authz:policy:read", "authz:action:read"]
+    conditions:
+      - {attribute: subject.roles, operator: contains, value: Authz.PolicyAuthor}
+
+  - id: allow-policy-approvers
+    description: Approvers activate or roll back policy versions they did not author.
+    effect: allow
+    actions: ["authz:policy:activate", "authz:policy:read", "authz:action:read"]
+    conditions:
+      - {attribute: subject.roles, operator: contains, value: Authz.PolicyApprover}
+
+  - id: allow-intent-approvers
+    description: Approvers review and approve high-risk intents.
+    effect: allow
+    actions: ["authz:intent:approve", "authz:intent:read"]
+    conditions:
+      - {attribute: subject.roles, operator: contains, value: Authz.IntentApprover}
+
+  - id: allow-security-officers
+    description: Security officers stop actions, revoke intents and investigate decisions.
+    effect: allow
+    actions:
+      - "authz:action:block"
+      - "authz:action:read"
+      - "authz:intent:revoke"
+      - "authz:intent:read"
+      - "authz:decision-log:read"
+      - "authz:policy:read"
+    conditions:
+      - {attribute: subject.roles, operator: contains, value: Authz.SecurityOfficer}
+
+  - id: allow-auditors
+    description: Auditors read decisions, policies, intents and the action catalog.
+    effect: allow
+    actions: ["authz:decision-log:read", "authz:policy:read", "authz:intent:read", "authz:action:read"]
+    conditions:
+      - {attribute: subject.roles, operator: contains, value: Authz.Auditor}

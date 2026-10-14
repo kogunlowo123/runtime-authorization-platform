@@ -1,0 +1,107 @@
+replicaCount: 3
+
+image:
+  repository: ghcr.io/kogunlowo123/runtime-authorization-platform
+  tag: ""  # defaults to .Chart.AppVersion
+  digest: ""  # set to pin an immutable sha256 digest; takes precedence over tag
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: runtime-authorization-platform
+  # Cloud workload identity bindings, e.g.
+  #   azure.workload.identity/client-id (Azure Workload ID, primary)
+  #   eks.amazonaws.com/role-arn (AWS IRSA)
+  #   iam.gke.io/gcp-service-account (GKE Workload Identity)
+  annotations: {}
+
+podLabels: {}
+
+# Deployment-specific values marked REQUIRED have no default; the chart
+# refuses to render until they are set (helm install --values <env>.yaml).
+authz:
+  environment: production
+  publicUrl: ""  # REQUIRED: public HTTPS URL (A2A Agent Card url, MCP host check)
+  entra:
+    tenantIds: []  # REQUIRED: allowed Entra ID directory (tenant) ids
+    audiences: []  # REQUIRED: accepted aud values, e.g. api://runtime-authorization
+    authority: https://login.microsoftonline.com
+    acceptV1Tokens: true
+    allowedClientIds: []  # optional allow list of calling application ids
+  # Optional agent identity fabric. url and issuer are set together.
+  fabric:
+    url: ""
+    issuer: ""
+    clientId: ""  # this service's agent id at the fabric (PIPs with auth=fabric)
+    workloadTokenAudience: ""  # audience of the projected token presented to the fabric
+  engineMode: local  # local | opa | combined | shadow
+  opa:
+    url: ""  # required unless engineMode=local
+    decisionPath: rap/authz/result
+  # HTTP policy information points: entity type -> {url, auth, ttl_s, stale_s}
+  pips: {}
+  decisionLogRetentionDays: 400
+  logLevel: INFO
+  otlpEndpoint: ""  # optional OTLP gRPC endpoint
+
+# Secrets are created by the platform secret operator (External Secrets,
+# Secrets Store CSI) from the cloud secret manager provisioned by Terraform.
+secrets:
+  # Secret holding key DATABASE_URL (postgresql+asyncpg://...).
+  database: runtime-authorization-database
+  # Secret holding audit-<kid>.pem, the Ed25519 audit signing key.
+  auditKey: runtime-authorization-audit-key
+  auditKeyFile: ""  # REQUIRED: file name of the audit key within secrets.auditKey
+
+audit:
+  storageClassName: ""
+  size: 20Gi
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  host: ""  # required when ingress.enabled
+  tlsSecret: runtime-authorization-tls
+  annotations: {}
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 384Mi
+  limits:
+    cpu: "1"
+    memory: 768Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 15
+  targetCPUUtilizationPercentage: 65
+
+podDisruptionBudget:
+  minAvailable: 2
+
+networkPolicy:
+  enabled: true
+  # Namespaces whose pods (gateways, agents) may call the platform.
+  allowedNamespaceLabels:
+    agent-platform/member: "true"
+  monitoringNamespaceLabels:
+    kubernetes.io/metadata.name: observability
+  ingressNamespaceLabels:
+    kubernetes.io/metadata.name: ingress-nginx
+
+serviceMonitor:
+  enabled: false
+  interval: 30s
+
+nodeSelector: {}
+tolerations: []
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway

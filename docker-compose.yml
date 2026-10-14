@@ -1,0 +1,58 @@
+# Local development stack: platform + PostgreSQL + Open Policy Agent (for
+# engine_mode=shadow/opa/combined) + an OpenTelemetry collector.
+# Uses an in-memory audit key (AUTHZ_DEV_EPHEMERAL_AUDIT_KEY); never use this
+# configuration outside a developer workstation. Entra ID tokens are required
+# for every API call: set ENTRA_TENANT_ID and ENTRA_AUDIENCE to a development
+# app registration before `docker compose up`.
+name: runtime-authorization-platform
+
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_DB: authz
+      POSTGRES_USER: authz
+      POSTGRES_PASSWORD: authz-local-only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authz -d authz"]
+      interval: 5s
+      retries: 10
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  opa:
+    image: openpolicyagent/opa:1.4.2
+    command: ["run", "--server", "--addr", "0.0.0.0:8181", "--log-level", "info"]
+    ports:
+      - "8181:8181"
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.111.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./deployments/docker/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+
+  authz:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+      opa:
+        condition: service_started
+    ports:
+      - "8080:8080"
+    environment:
+      AUTHZ_ENVIRONMENT: development
+      AUTHZ_PUBLIC_URL: http://localhost:8080
+      AUTHZ_DATABASE_URL: postgresql+asyncpg://authz:authz-local-only@postgres:5432/authz
+      AUTHZ_ENTRA_TENANT_IDS: '["${ENTRA_TENANT_ID:?set ENTRA_TENANT_ID}"]'
+      AUTHZ_ENTRA_AUDIENCES: '["${ENTRA_AUDIENCE:?set ENTRA_AUDIENCE}"]'
+      AUTHZ_ENGINE_MODE: shadow
+      AUTHZ_OPA_URL: http://opa:8181
+      AUTHZ_DEV_EPHEMERAL_AUDIT_KEY: "true"
+      AUTHZ_AUDIT_LOG_PATH: /var/lib/runtime-authorization/audit/audit.jsonl
+      AUTHZ_OTLP_ENDPOINT: http://otel-collector:4317
+      AUTHZ_LOG_LEVEL: DEBUG
+
+volumes:
+  pgdata:

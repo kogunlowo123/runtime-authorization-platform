@@ -1,0 +1,37 @@
+{{- $a := .Values.authz -}}
+{{- if not $a.entra.tenantIds }}{{ fail "authz.entra.tenantIds is required" }}{{ end -}}
+{{- if not $a.entra.audiences }}{{ fail "authz.entra.audiences is required" }}{{ end -}}
+{{- if and (ne $a.engineMode "local") (not $a.opa.url) }}{{ fail "authz.opa.url is required unless engineMode=local" }}{{ end -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "authz.fullname" . }}
+  labels: {{- include "authz.labels" . | nindent 4 }}
+data:
+  AUTHZ_ENVIRONMENT: {{ $a.environment | quote }}
+  AUTHZ_PUBLIC_URL: {{ required "authz.publicUrl is required" $a.publicUrl | quote }}
+  AUTHZ_ENTRA_TENANT_IDS: {{ $a.entra.tenantIds | toJson | quote }}
+  AUTHZ_ENTRA_AUDIENCES: {{ $a.entra.audiences | toJson | quote }}
+  AUTHZ_ENTRA_AUTHORITY: {{ $a.entra.authority | quote }}
+  AUTHZ_ENTRA_ACCEPT_V1_TOKENS: {{ $a.entra.acceptV1Tokens | quote }}
+  AUTHZ_ENTRA_ALLOWED_CLIENT_IDS: {{ $a.entra.allowedClientIds | toJson | quote }}
+  {{- if $a.fabric.url }}
+  AUTHZ_FABRIC_URL: {{ $a.fabric.url | quote }}
+  AUTHZ_FABRIC_ISSUER: {{ required "authz.fabric.issuer is required with authz.fabric.url" $a.fabric.issuer | quote }}
+  {{- end }}
+  {{- if $a.fabric.clientId }}
+  AUTHZ_FABRIC_CLIENT_ID: {{ $a.fabric.clientId | quote }}
+  AUTHZ_FABRIC_WORKLOAD_TOKEN_FILE: /var/run/secrets/runtime-authorization/fabric/token
+  {{- end }}
+  AUTHZ_ENGINE_MODE: {{ $a.engineMode | quote }}
+  {{- with $a.opa.url }}
+  AUTHZ_OPA_URL: {{ . | quote }}
+  {{- end }}
+  AUTHZ_OPA_DECISION_PATH: {{ $a.opa.decisionPath | quote }}
+  AUTHZ_PIPS: {{ $a.pips | toJson | quote }}
+  AUTHZ_AUDIT_KEY_FILE: {{ printf "/etc/runtime-authorization/audit-key/%s" (required "secrets.auditKeyFile is required" .Values.secrets.auditKeyFile) | quote }}
+  AUTHZ_DECISION_LOG_RETENTION_DAYS: {{ $a.decisionLogRetentionDays | quote }}
+  AUTHZ_LOG_LEVEL: {{ $a.logLevel | quote }}
+  {{- with $a.otlpEndpoint }}
+  AUTHZ_OTLP_ENDPOINT: {{ . | quote }}
+  {{- end }}

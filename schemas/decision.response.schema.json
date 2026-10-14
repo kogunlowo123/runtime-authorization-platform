@@ -1,0 +1,162 @@
+{
+  "$defs": {
+    "Decision": {
+      "description": "Outcome of a policy or security evaluation.",
+      "enum": [
+        "allow",
+        "deny",
+        "require_approval"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "IntentUse": {
+      "properties": {
+        "approved": {
+          "title": "Approved",
+          "type": "boolean"
+        },
+        "intent_id": {
+          "title": "Intent Id",
+          "type": "string"
+        },
+        "max_uses": {
+          "title": "Max Uses",
+          "type": "integer"
+        },
+        "uses": {
+          "title": "Uses",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "intent_id",
+        "approved",
+        "uses",
+        "max_uses"
+      ],
+      "title": "IntentUse",
+      "type": "object"
+    },
+    "PolicyRef": {
+      "properties": {
+        "digest": {
+          "title": "Digest",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "digest"
+      ],
+      "title": "PolicyRef",
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/kogunlowo123/runtime-authorization-platform/schemas/decision.response.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "action": {
+      "title": "Action",
+      "type": "string"
+    },
+    "attribute_sources": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Attribute Sources",
+      "type": "object"
+    },
+    "decision": {
+      "$ref": "#/$defs/Decision"
+    },
+    "decision_id": {
+      "title": "Decision Id",
+      "type": "string"
+    },
+    "dry_run": {
+      "title": "Dry Run",
+      "type": "boolean"
+    },
+    "engine": {
+      "title": "Engine",
+      "type": "string"
+    },
+    "evaluated_at": {
+      "format": "date-time",
+      "title": "Evaluated At",
+      "type": "string"
+    },
+    "intent": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/IntentUse"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "matched_rules": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Matched Rules",
+      "type": "array"
+    },
+    "obligations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Obligations",
+      "type": "array"
+    },
+    "policy": {
+      "$ref": "#/$defs/PolicyRef"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "resource": {
+      "title": "Resource",
+      "type": "string"
+    },
+    "stage": {
+      "title": "Stage",
+      "type": "string"
+    },
+    "subject": {
+      "title": "Subject",
+      "type": "string"
+    }
+  },
+  "required": [
+    "decision_id",
+    "decision",
+    "reason",
+    "stage",
+    "matched_rules",
+    "policy",
+    "engine",
+    "subject",
+    "action",
+    "resource",
+    "intent",
+    "obligations",
+    "attribute_sources",
+    "dry_run",
+    "evaluated_at"
+  ],
+  "title": "DecisionResult",
+  "type": "object"
+}

@@ -1,0 +1,27 @@
+# Values used by CI to render and schema-validate the chart (helm lint,
+# helm template | kubeconform). They describe a complete, valid deployment.
+authz:
+  publicUrl: https://authz.agents.ci.internal
+  entra:
+    tenantIds: ["9b1c5e7a-1d2f-4c3b-8a6e-0f1e2d3c4b5a"]
+    audiences: ["api://runtime-authorization.ci.internal"]
+  fabric:
+    url: https://identity.agents.ci.internal
+    issuer: https://identity.agents.ci.internal
+    clientId: spiffe://agents.ci.internal/agent/platform/runtime-authorization
+    workloadTokenAudience: identity-fabric
+  engineMode: shadow
+  opa:
+    url: http://opa.policy.svc.cluster.local:8181
+  pips:
+    document:
+      url: https://documents.agents.ci.internal/attributes/{id}
+      auth: fabric
+secrets:
+  auditKeyFile: audit-2026-10.pem
+ingress:
+  enabled: true
+  className: nginx
+  host: authz.agents.ci.internal
+serviceMonitor:
+  enabled: true

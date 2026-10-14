@@ -1,0 +1,126 @@
+# Unit tests for policies/runtime-authorization.yaml.
+# Run: uv run authz-policy-test test policies/runtime-authorization.yaml policies/tests/runtime-authorization.tests.yaml
+# Every rule must decide at least one case.
+policy: runtime-authorization
+cases:
+  - name: scoped agent reads an internal document
+    subject: {id: agent-a, action_in_scope: true, delegated: false}
+    action: documents:read
+    resource: {type: document, id: d1, classification: 1}
+    risk: 1
+    environment: {intent: {declared: false, approved: false}}
+    expect: allow
+    expect_rules: [allow-scoped-actions]
+
+  - name: unscoped agent with no relationship is denied by default
+    subject: {id: agent-a, action_in_scope: false, delegated: false, department: finance}
+    action: documents:read
+    resource: {type: document, id: d1, classification: 1, owner: someone-else, department: legal}
+    risk: 1
+    environment: {intent: {declared: false, approved: false}}
+    expect: deny
+    expect_rules: []
+
+  - name: owner reads own document without a scope
+    subject: {id: agent-a, action_in_scope: false, delegated: false}
+    action: documents:read
+    resource: {type: document, id: d2, classification: 2, owner: agent-a}
+    risk: 1
+    environment: {intent: {declared: false, approved: false}}
+    expect: allow
+    expect_rules: [allow-owner-read]
+
+  - name: owner rule does not extend to writes
+    subject: {id: agent-a, action_in_scope: false, delegated: false}
+    action: documents:write
+    resource: {type: document, id: d2, classification: 1, owner: agent-a}
+    risk: 2
+    environment: {intent: {declared: false, approved: false}}
+    expect: deny
+
+  - name: same department reads confidential
+    subject: {id: user-b, action_in_scope: false, delegated: false, department: finance}
+    action: documents:read
+    resource: {type: document, id: d3, classification: 2, department: finance}
+    risk: 1
+    environment: {intent: {declared: false, approved: false}}
+    expect: allow
+    expect_rules: [allow-department-read]
+
+  - name: department rule stops at restricted
+    subject: {id: user-b, action_in_scope: false, delegated: false, department: finance}
+    action: documents:read
+    resource: {type: document, id: d4, classification: 3, department: finance}
+    risk: 1
+    environment: {purpose_of_use: audit, intent: {declared: false, approved: false}}
+    expect: deny
+
+  - name: quarantined resource is denied even with scope
+    subject: {id: agent-a, action_in_scope: true, delegated: false}
+    action: documents:read
+    resource: {type: document, id: d5, classification: 1, quarantined: true}
+    risk: 1
+    environment: {intent: {declared: false, approved: false}}
+    expect: deny
+    expect_rules: [deny-quarantined-resources]
+
+  - name: restricted data without purpose of use is denied
+    subject: {id: agent-a, action_in_scope: true, delegated: false}
+    action: records:read
+    resource: {type: record, id: r1, classification: 3}
+    risk: 2
+    environment: {intent: {declared: false, approved: false}}
+    expect: deny
+    expect_rules: [deny-restricted-without-purpose]
+
+  - name: restricted read with purpose of use is allowed for a scoped agent
+    subject: {id: agent-a, action_in_scope: true, delegated: false}
+    action: records:read
+    resource: {type: record, id: r1, classification: 3}
+    risk: 2
+    environment: {purpose_of_use: treatment, intent: {declared: false, approved: false}}
+    expect: allow
+
+  - name: critical action on delegated authority is denied
+    subject: {id: agent-a, action_in_scope: true, delegated: true}
+    action: payments:execute
+    resource: {type: payment, id: p1, classification: 2}
+    risk: 4
+    environment: {intent: {declared: true, approved: true}}
+    expect: deny
+    expect_rules: [deny-critical-under-delegation]
+
+  - name: high-risk action without approved intent needs approval
+    subject: {id: agent-a, action_in_scope: true, delegated: false}
+    action: documents:delete
+    resource: {type: document, id: d6, classification: 1}
+    risk: 3
+    environment: {intent: {declared: true, approved: false}}
+    expect: require_approval
+    expect_rules: [approve-high-risk-actions]
+
+  - name: high-risk action with approved intent is allowed
+    subject: {id: agent-a, action_in_scope: true, delegated: false}
+    action: documents:delete
+    resource: {type: document, id: d6, classification: 1}
+    risk: 3
+    environment: {intent: {declared: true, approved: true}}
+    expect: allow
+
+  - name: restricted write without approved intent needs approval
+    subject: {id: agent-a, action_in_scope: true, delegated: false}
+    action: documents:write
+    resource: {type: document, id: d7, classification: 3}
+    risk: 2
+    environment: {purpose_of_use: treatment, intent: {declared: true, approved: false}}
+    expect: require_approval
+    expect_rules: [approve-restricted-changes]
+
+  - name: approval does not override a deny
+    subject: {id: agent-a, action_in_scope: true, delegated: false}
+    action: documents:delete
+    resource: {type: document, id: d8, classification: 3}
+    risk: 3
+    environment: {intent: {declared: true, approved: false}}
+    expect: deny
+    expect_rules: [deny-restricted-without-purpose]

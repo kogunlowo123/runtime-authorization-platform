@@ -1,0 +1,20 @@
+# Action catalog: every action an agent may be authorized for.
+# Unregistered actions are denied before policy evaluation.
+# First matching pattern wins; list specific patterns before wildcards.
+#   risk    1 LOW, 2 MODERATE, 3 HIGH, 4 CRITICAL (the policy fact "risk")
+#   intent  none | optional | required (required: no decision without a
+#           declared, matching, unexpired intent)
+#   max_intent_uses  how many allowed decisions one intent may authorize
+version: "2026.10.0"
+actions:
+  - {pattern: "documents:read", risk: 1, intent: optional, description: "Read a document"}
+  - {pattern: "documents:write", risk: 2, intent: optional, description: "Create or edit a document"}
+  - {pattern: "documents:delete", risk: 3, intent: required, max_intent_uses: 1, description: "Delete a document"}
+  - {pattern: "documents:export", risk: 3, intent: required, max_intent_uses: 1, description: "Export a document outside the tenant"}
+  - {pattern: "records:read", risk: 2, intent: optional, description: "Read a regulated business record"}
+  - {pattern: "records:update", risk: 3, intent: required, max_intent_uses: 1, description: "Amend a regulated business record"}
+  - {pattern: "tickets:read", risk: 1, intent: none, description: "Read a service ticket"}
+  - {pattern: "tickets:*", risk: 2, intent: optional, max_intent_uses: 20, description: "Comment on, update or close a service ticket"}
+  - {pattern: "email:send", risk: 3, intent: required, max_intent_uses: 5, description: "Send email on behalf of the organization"}
+  - {pattern: "payments:execute", risk: 4, intent: required, max_intent_uses: 1, description: "Execute a payment"}
+  - {pattern: "infrastructure:change", risk: 4, intent: required, max_intent_uses: 1, description: "Change production infrastructure"}
